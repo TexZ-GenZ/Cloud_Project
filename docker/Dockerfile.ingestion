@@ -13,8 +13,8 @@ RUN python -c "import urllib.request; urllib.request.urlretrieve('https://github
 
 WORKDIR /app
 
-COPY requirements-ingestion.txt .
-RUN pip install --no-cache-dir -r requirements-ingestion.txt
+COPY requirements/ingestion.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY shared/ shared/
 COPY services/ services/

@@ -5,8 +5,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
 
 WORKDIR /app
 
-COPY requirements-transcription.txt .
-RUN pip install --no-cache-dir -r requirements-transcription.txt
+COPY requirements/transcription.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY shared/ shared/
 COPY services/ services/

@@ -20,7 +20,7 @@ services:
   ingestion-api:
     build:
       context: .
-      dockerfile: Dockerfile.ingestion
+      dockerfile: docker/Dockerfile.ingestion
     environment: &aws-env
       AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-}
       AWS_REGION: ${AWS_REGION:-ap-south-1}
@@ -39,7 +39,7 @@ services:
   ingestion-worker:
     build:
       context: .
-      dockerfile: Dockerfile.ingestion
+      dockerfile: docker/Dockerfile.ingestion
     command: python -m services.ingestion.worker
     environment: *aws-env
 
@@ -47,7 +47,7 @@ services:
   transcription-worker:
     build:
       context: .
-      dockerfile: Dockerfile.transcription
+      dockerfile: docker/Dockerfile.transcription
     environment:
       <<: *aws-env
       # CPU inference keeps the deployment on a basic x86 instance.
@@ -61,7 +61,7 @@ services:
   summarization-api:
     build:
       context: .
-      dockerfile: Dockerfile.summarization
+      dockerfile: docker/Dockerfile.summarization
     environment:
       <<: *aws-env
       CHROMA_DIR: /data/chroma
@@ -74,7 +74,7 @@ services:
   summarization-worker:
     build:
       context: .
-      dockerfile: Dockerfile.summarization
+      dockerfile: docker/Dockerfile.summarization
     command: python -m services.summarization.worker
     environment:
       <<: *aws-env
