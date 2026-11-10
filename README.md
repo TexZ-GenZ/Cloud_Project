@@ -7,34 +7,31 @@ VideoSense turns a YouTube link or uploaded video into a transcript, summary, ac
 The React UI calls two FastAPI APIs. SQS passes jobs through the ingestion, transcription, and summarization workers. AWS uses S3 for media and transcripts, DynamoDB for job state, and ChromaDB for video chat. The containers run on EC2; locally, LocalStack emulates S3, DynamoDB, and SQS.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"fontSize":"18px"},"flowchart":{"nodeSpacing":24,"rankSpacing":32}}}%%
+%%{init: {"theme":"base","themeVariables":{"fontSize":"18px","lineColor":"#94a3b8","textColor":"#f8fafc"},"flowchart":{"nodeSpacing":28,"rankSpacing":36,"curve":"linear"}}}%%
 flowchart TB
-    Browser[Browser] --> UI[React UI<br/>Nginx on EC2]
+    Browser[Browser] --> UI[React UI<br/>Nginx]
     UI --> IngestAPI[Ingestion API]
-    UI --> ResultsAPI[Results and chat API]
-    IngestAPI --> Q1[Jobs queue]
-    Q1 --> IngestWorker[Audio ingestion worker]
-    IngestWorker --> Q2[Transcription queue]
-    Q2 --> TranscribeWorker[Transcription worker]
-    TranscribeWorker --> Q3[Summarization queue]
-    Q3 --> SummarizeWorker[Summarization worker]
-    IngestAPI --> Jobs[(DynamoDB<br/>job state)]
+    UI --> ResultsAPI[Results API<br/>chat]
+    IngestAPI --> SQS[SQS<br/>queues]
+    SQS --> Workers[Processing<br/>workers]
+    Workers --> S3[(S3<br/>media and text)]
+    IngestAPI --> Jobs[(DynamoDB<br/>jobs)]
+    Workers --> Jobs
     ResultsAPI --> Jobs
-    IngestWorker --> S3[(S3<br/>media and transcripts)]
-    TranscribeWorker --> S3
-    SummarizeWorker --> S3
-    SummarizeWorker --> Jobs
-    SummarizeWorker --> Chroma[(ChromaDB<br/>video index)]
+    Workers --> Chroma[(ChromaDB<br/>index)]
     ResultsAPI --> Chroma
-    classDef api fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#111827
-    classDef queue fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111827
-    classDef worker fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111827
-    classDef data fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#111827
+    linkStyle default stroke:#94a3b8,stroke-width:2px
+    classDef api fill:#1d4ed8,stroke:#93c5fd,stroke-width:2px,color:#ffffff
+    classDef queue fill:#92400e,stroke:#fcd34d,stroke-width:2px,color:#ffffff
+    classDef worker fill:#166534,stroke:#86efac,stroke-width:2px,color:#ffffff
+    classDef data fill:#5b21b6,stroke:#c4b5fd,stroke-width:2px,color:#ffffff
     class UI,IngestAPI,ResultsAPI api
-    class Q1,Q2,Q3 queue
-    class IngestWorker,TranscribeWorker,SummarizeWorker worker
+    class SQS queue
+    class Workers worker
     class Jobs,S3,Chroma data
 ```
+
+SQS passes each job through ingestion, transcription, and summarization in sequence.
 
 ## Run locally
 
