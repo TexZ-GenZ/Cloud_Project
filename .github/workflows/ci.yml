@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, eks-refactor]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -26,32 +26,3 @@ jobs:
 
       - name: Run test suite (moto-emulated AWS)
         run: pytest tests/ -q
-
-  build-push:
-    # Only push images for merged branches (not every PR)
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/eks-refactor'
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'ap-south-1' }}
-
-      - name: Login to Amazon ECR
-        id: ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and push images
-        env:
-          REGISTRY: ${{ steps.ecr.outputs.registry }}
-        run: |
-          for svc in ingestion transcription summarization; do
-            echo "==> Building videosense/$svc"
-            docker build -f "Dockerfile.$svc" -t "$REGISTRY/videosense/$svc:latest" .
-            docker push "$REGISTRY/videosense/$svc:latest"
-          done

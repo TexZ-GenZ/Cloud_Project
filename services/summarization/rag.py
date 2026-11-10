@@ -36,7 +36,7 @@ def _client() -> chromadb.ClientAPI:
     """Chroma client.
 
     persistent mode → local sqlite (dev/compose, single process).
-    http mode     → shared Chroma server (EKS deployment, multi-pod).
+    http mode     → a shared Chroma server for a hosted multi-instance setup.
     """
     if CHROMA_MODE == "http":
         return chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)

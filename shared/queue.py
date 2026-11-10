@@ -40,8 +40,7 @@ def queue_url(queue_name: str) -> str:
 def ensure_queues() -> None:
     """Create the three queues + DLQs with redrive policy (idempotent).
 
-    Used by localstack/dev; production queues are provisioned by the
-    infra scripts instead.
+    Used by the local Docker Compose stack to initialize LocalStack queues.
     """
     client = _client()
     for name in (QUEUE_JOBS, QUEUE_TRANSCRIBE, QUEUE_SUMMARIZE):

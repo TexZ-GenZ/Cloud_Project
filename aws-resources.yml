@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Minimal AWS data services and EC2 role for VideoSense (no Kubernetes).
+
+Resources:
+  JobsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub videosense-jobs-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  JobsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      TableName: videosense-jobs
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: job_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: job_id
+          KeyType: HASH
+
+  JobsDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: videosense-jobs-dlq
+  TranscribeDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: videosense-transcribe-dlq
+  SummarizeDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: videosense-summarize-dlq
+
+  JobsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: videosense-jobs
+      VisibilityTimeout: 1800
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt JobsDLQ.Arn
+        maxReceiveCount: 3
+  TranscribeQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: videosense-transcribe
+      VisibilityTimeout: 1800
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TranscribeDLQ.Arn
+        maxReceiveCount: 3
+  SummarizeQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: videosense-summarize
+      VisibilityTimeout: 1800
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SummarizeDLQ.Arn
+        maxReceiveCount: 3
+
+  AppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub videosense-app-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: videosense-app-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:ListTables
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                Resource: !GetAtt JobsBucket.Arn
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListMultipartUploadParts
+                Resource: !Sub "${JobsBucket.Arn}/*"
+              - Effect: Allow
+                Action:
+                  - dynamodb:DescribeTable
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                Resource: !GetAtt JobsTable.Arn
+              - Effect: Allow
+                Action:
+                  - sqs:GetQueueUrl
+                  - sqs:GetQueueAttributes
+                  - sqs:SendMessage
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                Resource:
+                  - !GetAtt JobsQueue.Arn
+                  - !GetAtt TranscribeQueue.Arn
+                  - !GetAtt SummarizeQueue.Arn
+      Tags:
+        - Key: Project
+          Value: VideoSense
+
+  AppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref AppRole
+
+Outputs:
+  JobsBucketName:
+    Value: !Ref JobsBucket
+  JobsTableName:
+    Value: !Ref JobsTable
+  AppInstanceProfileName:
+    Value: !Ref AppInstanceProfile
+  AppRoleName:
+    Value: !Ref AppRole

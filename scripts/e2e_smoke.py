@@ -10,7 +10,7 @@ Options:
     --timeout MIN   max minutes to wait for completion (default 30)
     --file PATH     upload a local file first, then process it by file_id
 
-Works against the docker-compose local stack AND the EKS ALB (pass both URLs).
+Works against the local Docker Compose stack (pass both API URLs if needed).
 """
 
 import argparse

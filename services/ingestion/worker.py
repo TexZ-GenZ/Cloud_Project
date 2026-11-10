@@ -53,7 +53,7 @@ def download_youtube_url(url: str, workdir: str) -> str:
     }
 
     # YouTube bot-checks cloud/datacenter IPs — a session cookie file
-    # (COOKIES_FILE, mounted as a k8s secret in prod) gets past the
+    # (COOKIES_FILE, supplied as a mounted secret in a hosted deployment) gets past the
     # "Sign in to confirm you're not a bot" wall. kubelet mounts secret
     # volumes read-only, but yt-dlp wants to update the cookie jar — so
     # copy it into the writable workdir first.
