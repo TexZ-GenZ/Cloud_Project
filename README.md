@@ -4,7 +4,28 @@ VideoSense turns a YouTube link or uploaded video into a transcript, summary, ac
 
 ## Architecture
 
-The React UI calls two FastAPI APIs. SQS passes jobs to the ingestion, transcription, and summarization workers. S3 stores media and transcripts; DynamoDB stores job state; ChromaDB supports video chat. For AWS, the containers run on EC2 and use real S3, SQS, and DynamoDB. For local runs, LocalStack emulates those AWS services.
+The React UI calls two FastAPI APIs. SQS passes jobs through the ingestion, transcription, and summarization workers. AWS uses S3 for media and transcripts, DynamoDB for job state, and ChromaDB for video chat. The containers run on EC2; locally, LocalStack emulates S3, DynamoDB, and SQS.
+
+```mermaid
+flowchart LR
+    Browser --> UI[React UI + Nginx]
+    UI --> IngestAPI[Ingestion API]
+    UI --> ResultsAPI[Results and chat API]
+    IngestAPI --> Jobs[(DynamoDB jobs)]
+    IngestAPI --> Q1[SQS jobs]
+    Q1 --> IngestWorker[Ingestion worker]
+    IngestWorker --> S3[(S3 media and transcripts)]
+    IngestWorker --> Q2[SQS transcription]
+    Q2 --> TranscribeWorker[Transcription worker]
+    TranscribeWorker --> S3
+    TranscribeWorker --> Q3[SQS summarization]
+    Q3 --> SummarizeWorker[Summarization worker]
+    SummarizeWorker --> S3
+    SummarizeWorker --> Jobs
+    SummarizeWorker --> Chroma[(ChromaDB index)]
+    ResultsAPI --> Jobs
+    ResultsAPI --> Chroma
+```
 
 ## Run locally
 
@@ -52,8 +73,7 @@ Open the instance’s public IP over HTTP. EC2’s role provides AWS credentials
 
 ## Project folders
 
-- `services/` — APIs and processing workers
-- `shared/` — AWS storage, queue, and job helpers
-- `UI/` — React frontend and Nginx proxy
-- `tests/` — backend tests
-- `aws-resources.yml` — AWS data services and EC2 role
+- `services/` — APIs and workers
+- `shared/` — storage, queue, and job helpers
+- `UI/` — React app and Nginx proxy
+- `aws-resources.yml` — AWS resources and EC2 role
